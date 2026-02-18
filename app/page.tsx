@@ -1,89 +1,272 @@
 "use client";
-import { useState } from 'react';
-import { ControlParking, ReservaComida } from '../lib/servicios';
-import { Avestruz } from '../lib/aves';
+import { useState } from "react";
+
+/* ============================
+   MODELOS SOLID
+============================ */
+
+interface Corredor {
+  correr(): string;
+}
+
+class Avestruz implements Corredor {
+  correr(): string {
+    return "El avestruz corre hasta 70 km/h 🐦";
+  }
+}
+
+abstract class ProductoBase {
+  constructor(
+    protected nombre: string,
+    protected precioBase: number
+  ) {}
+
+  abstract calcularPrecioFinal(): number;
+}
+
+class Parking extends ProductoBase {
+  constructor(
+    nombre: string,
+    precioBase: number,
+    private horas: number
+  ) {
+    super(nombre, precioBase);
+  }
+
+  calcularPrecioFinal(): number {
+    return this.precioBase * this.horas;
+  }
+}
+
+/* ============================
+   COMPONENTE PRINCIPAL
+============================ */
 
 export default function Home() {
-  // --- ESTADOS (Para poder editar) ---
-  const [horas, setHoras] = useState(3);
-  const [precioComida, setPrecioComida] = useState(15);
-  const [paciente, setPaciente] = useState("Valentina");
-  const [nuevoSintoma, setNuevoSintoma] = useState("");
-  const [historial, setHistorial] = useState(["Chequeo de rutina", "Presión normal"]);
 
-  // --- LÓGICA SOLID ---
-  const parking = new ControlParking("Parking VIP", 5, horas);
-  const comida = new ReservaComida("Menú Ejecutivo", precioComida);
-  const ave = new Avestruz();
+  /* -------- PARKING -------- */
+  const [vehiculo, setVehiculo] = useState("Auto");
+  const [placa, setPlaca] = useState("");
+  const [horas, setHoras] = useState(1);
+  const [registrosParking, setRegistrosParking] = useState<any[]>([]);
+  const [editIndex, setEditIndex] = useState<number | null>(null);
 
-  const manejarHistorial = () => {
-    if (nuevoSintoma.trim()) {
-      setHistorial([...historial, nuevoSintoma]);
-      setNuevoSintoma("");
+  const precioVehiculo = vehiculo === "Auto" ? 5 : 3;
+  const parking = new Parking("Parking", precioVehiculo, horas);
+
+  const validarPlaca = (valor: string) => {
+    const regex = /^[A-Za-z0-9]{0,6}$/;
+    if (regex.test(valor)) {
+      setPlaca(valor.toUpperCase());
     }
   };
 
+  const guardarParking = () => {
+    if (!placa || horas < 1) {
+      alert("Complete los datos correctamente");
+      return;
+    }
+
+    const nuevoRegistro = {
+      vehiculo,
+      placa,
+      horas,
+      total: parking.calcularPrecioFinal(),
+    };
+
+    if (editIndex !== null) {
+      const copia = [...registrosParking];
+      copia[editIndex] = nuevoRegistro;
+      setRegistrosParking(copia);
+      setEditIndex(null);
+    } else {
+      setRegistrosParking([...registrosParking, nuevoRegistro]);
+    }
+
+    setPlaca("");
+    setHoras(1);
+  };
+
+  const editarParking = (index: number) => {
+    const reg = registrosParking[index];
+    setVehiculo(reg.vehiculo);
+    setPlaca(reg.placa);
+    setHoras(reg.horas);
+    setEditIndex(index);
+  };
+
+  /* -------- HISTORIA CLINICA -------- */
+  const [paciente, setPaciente] = useState("");
+  const [sangre, setSangre] = useState("O+");
+  const [doctor, setDoctor] = useState("General");
+  const [fecha, setFecha] = useState("");
+  const [afeccion, setAfeccion] = useState("");
+  const [historias, setHistorias] = useState<any[]>([]);
+
+  const guardarHistoria = () => {
+    if (!paciente || !fecha) {
+      alert("Paciente y fecha son obligatorios");
+      return;
+    }
+
+    const nuevaHistoria = {
+      paciente,
+      sangre,
+      doctor,
+      fecha,
+      afeccion: afeccion || "Ninguna",
+    };
+
+    setHistorias([...historias, nuevaHistoria]);
+
+    setPaciente("");
+    setFecha("");
+    setAfeccion("");
+  };
+
+  /* -------- IMPRIMIR -------- */
+  const imprimir = () => {
+    window.print();
+  };
+
+  const ave = new Avestruz();
+
   return (
-    <main className="min-h-screen bg-slate-100 p-8 font-sans">
-      <div className="max-w-6xl mx-auto space-y-8">
-        <h1 className="text-4xl font-black text-center text-indigo-800 uppercase tracking-tighter">
-          Panel de Control Sistemas II
-        </h1>
+    <main className="min-h-screen bg-yellow-50 p-10">
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          
-          {/* TARJETA PARKING Y COMIDA */}
-          <div className="bg-white p-6 rounded-3xl shadow-xl border-b-4 border-orange-500 transition-all hover:shadow-2xl">
-            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">🚗 Parking y 🍔 Comida</h2>
-            <div className="space-y-4">
-              <div>
-                <label className="text-xs font-bold text-gray-400">HORAS DE PARKING</label>
-                <input type="number" value={horas} onChange={(e) => setHoras(Number(e.target.value))} className="w-full p-2 bg-gray-50 rounded border" />
-                <p className="text-orange-600 font-bold mt-1">Total: ${parking.calcularPrecioFinal()}</p>
+      <h1 className="text-4xl font-black text-center text-orange-600 mb-10">
+        🍔 Sistema Completo Parking & Salud
+      </h1>
+
+      <div className="grid md:grid-cols-2 gap-8">
+
+        {/* PARKING */}
+        <div className="bg-white p-6 rounded-2xl shadow-lg border-t-8 border-orange-400">
+          <h2 className="text-xl font-bold text-orange-600 mb-4">
+            🚗 Parking
+          </h2>
+
+          <select
+            className="w-full p-2 mb-2 border rounded"
+            value={vehiculo}
+            onChange={(e) => setVehiculo(e.target.value)}
+          >
+            <option>Auto</option>
+            <option>Moto</option>
+          </select>
+
+          <input
+            className="w-full p-2 mb-2 border rounded"
+            placeholder="Placa (máx 6 letras/números)"
+            value={placa}
+            onChange={(e) => validarPlaca(e.target.value)}
+          />
+
+          <input
+            type="number"
+            min={1}
+            className="w-full p-2 mb-2 border rounded"
+            value={horas}
+            onChange={(e) => setHoras(Number(e.target.value))}
+          />
+
+          <p className="font-bold text-orange-700 mb-3">
+            Total: Bs {parking.calcularPrecioFinal()}
+          </p>
+
+          <button
+            onClick={guardarParking}
+            className="bg-orange-500 text-white px-4 py-2 rounded mr-2"
+          >
+            {editIndex !== null ? "Actualizar" : "Guardar"}
+          </button>
+
+          <button
+            onClick={imprimir}
+            className="bg-yellow-500 text-white px-4 py-2 rounded"
+          >
+            Imprimir
+          </button>
+
+          <div className="mt-4">
+            {registrosParking.map((r, i) => (
+              <div key={i} className="border p-2 mb-2 rounded">
+                {r.vehiculo} - {r.placa} - {r.horas}h - Bs {r.total}
+                <button
+                  onClick={() => editarParking(i)}
+                  className="ml-2 text-orange-600 underline"
+                >
+                  Editar
+                </button>
               </div>
-              <div>
-                <label className="text-xs font-bold text-gray-400">PRECIO COMIDA</label>
-                <input type="number" value={precioComida} onChange={(e) => setPrecioComida(Number(e.target.value))} className="w-full p-2 bg-gray-50 rounded border" />
-                <p className="text-blue-600 font-bold mt-1">Total + Reserva: ${comida.calcularPrecioFinal()}</p>
-              </div>
-            </div>
+            ))}
           </div>
-
-          {/* TARJETA SALUD (EDITABLE) */}
-          <div className="bg-white p-6 rounded-3xl shadow-xl border-b-4 border-emerald-500 transition-all hover:shadow-2xl">
-            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">🏥 Historia Clínica</h2>
-            <input type="text" value={paciente} onChange={(e) => setPaciente(e.target.value)} className="w-full p-2 mb-4 font-bold text-emerald-700 bg-emerald-50 rounded italic" />
-            <div className="max-h-32 overflow-y-auto mb-4 space-y-1">
-              {historial.map((h, i) => (
-                <div key={i} className="text-xs p-2 bg-slate-50 rounded border-l-2 border-emerald-300">✓ {h}</div>
-              ))}
-            </div>
-            <div className="flex gap-2">
-              <input type="text" placeholder="Añadir nota..." value={nuevoSintoma} onChange={(e) => setNuevoSintoma(e.target.value)} className="flex-1 p-2 text-sm border rounded" />
-              <button onClick={manejarHistorial} className="bg-emerald-500 text-white px-3 rounded text-xl">+</button>
-            </div>
-          </div>
-
-          {/* TARJETA AVES (SOLID) */}
-          <div className="bg-slate-800 p-6 rounded-3xl shadow-xl border-b-4 border-purple-500 text-white transition-all hover:shadow-2xl">
-            <h2 className="text-xl font-bold mb-4 text-purple-400">🐦 Lógica de Aves</h2>
-            <div className="bg-slate-700 p-4 rounded-xl mb-4 border-l-4 border-purple-500">
-              <p className="italic text-lg">"{ave.correr()}"</p>
-            </div>
-            <div className="p-3 bg-purple-900/40 rounded-lg">
-              <p className="text-[10px] leading-tight text-purple-200 uppercase font-bold tracking-widest mb-1">Principio ISP:</p>
-              <p className="text-[10px] text-gray-300">El avestruz no tiene botón de "Volar" porque no implementa esa interfaz. Esto evita errores en tiempo de ejecución.</p>
-            </div>
-          </div>
-
         </div>
 
-        <footer className="text-center py-10">
-          <button onClick={() => window.print()} className="bg-indigo-600 text-white px-10 py-3 rounded-full font-bold shadow-lg hover:bg-indigo-700 active:scale-95 transition-all">
-             GENERAR PDF DE LA TAREA
+        {/* HISTORIA CLINICA */}
+        <div className="bg-white p-6 rounded-2xl shadow-lg border-t-8 border-yellow-400">
+          <h2 className="text-xl font-bold text-yellow-600 mb-4">
+            🏥 Historia Clínica
+          </h2>
+
+          <input
+            className="w-full p-2 mb-2 border rounded"
+            placeholder="Paciente"
+            value={paciente}
+            onChange={(e) => setPaciente(e.target.value)}
+          />
+
+          <input
+            type="date"
+            className="w-full p-2 mb-2 border rounded"
+            value={fecha}
+            onChange={(e) => setFecha(e.target.value)}
+          />
+
+          <select
+            className="w-full p-2 mb-2 border rounded"
+            value={sangre}
+            onChange={(e) => setSangre(e.target.value)}
+          >
+            <option>O+</option>
+            <option>A+</option>
+            <option>B+</option>
+          </select>
+
+          <input
+            className="w-full p-2 mb-2 border rounded"
+            placeholder="Afección (opcional)"
+            value={afeccion}
+            onChange={(e) => setAfeccion(e.target.value)}
+          />
+
+          <button
+            onClick={guardarHistoria}
+            className="bg-yellow-500 text-white px-4 py-2 rounded"
+          >
+            Guardar Historia
           </button>
-        </footer>
+
+          <div className="mt-4">
+            {historias.map((h, i) => (
+              <div key={i} className="border p-2 mb-2 rounded">
+                {h.paciente} - {h.fecha} - {h.afeccion}
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
+
+      {/* ISP */}
+      <div className="mt-10 text-center bg-orange-100 p-6 rounded-xl">
+        <h2 className="font-bold text-orange-600 mb-2">
+          🐦 Principio ISP
+        </h2>
+        <p className="text-orange-700 italic">
+          {ave.correr()}
+        </p>
+      </div>
+
     </main>
   );
 }

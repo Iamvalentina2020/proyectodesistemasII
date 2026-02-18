@@ -1,4 +1,4 @@
-import { ProductoBase } from './servicios';
+import { ProductoBase } from './productoBase';
 
 export class HistoriaClinica {
   agregarRegistro(reg: {id: string, descripcion: string, fecha: string}) {
